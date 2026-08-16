@@ -79,6 +79,18 @@
   .font-mono {
     font-variant-numeric: tabular-nums;
   }
+
+  /* Fora as setinhas de subir e descer do campo de número: no balcão se
+     digita a quantidade, não se clica quarenta vezes numa flecha de 8px. */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
 }
 
 /* Rótulo pequeno, de etiqueta de almoxarifado. */

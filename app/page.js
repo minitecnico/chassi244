@@ -2,7 +2,18 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, FileUp, LogOut, Package, Plus, Search, Trash2, UserPlus, X } from "lucide-react";
+import {
+  Download,
+  FileUp,
+  LogOut,
+  MoreVertical,
+  Package,
+  Plus,
+  Search,
+  Trash2,
+  UserPlus,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import PecaForm from "@/components/PecaForm";
@@ -16,6 +27,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 /** Sem a coluna `busca`, que é do banco e pesa mais que todo o resto junto. */
 const COLUNAS =
@@ -190,7 +209,7 @@ export default function Catalogo() {
     <main className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
       <header className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-b py-6">
         <div>
-          <p className="etiqueta">Reformadora de chassis</p>
+          <p className="etiqueta">CHASSI244</p>
           <h1 className="text-3xl leading-none font-extrabold tracking-tight sm:text-4xl">
             Catálogo de peças
           </h1>
@@ -200,19 +219,40 @@ export default function Catalogo() {
           <Indicador rotulo="Peças" valor={pecas.length} />
           <Indicador rotulo="Fornecedores" valor={opcoes.fornecedor.length} />
           <Indicador rotulo="Marcas" valor={opcoes.marca.length} />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setConvidando(true)}
-            title="Convidar a equipe"
-          >
-            <UserPlus />
-            <span className="sr-only">Convidar a equipe</span>
-          </Button>
-          <Button variant="ghost" size="icon" onClick={sair} title="Sair">
-            <LogOut />
-            <span className="sr-only">Sair</span>
-          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" title="Mais opções">
+                <MoreVertical />
+                <span className="sr-only">Mais opções</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => setConvidando(true)}>
+                <UserPlus /> Convidar a equipe
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={exportarCsv} disabled={!visiveis.length}>
+                <Download /> Baixar em CSV
+                <span className="etiqueta ml-auto">{visiveis.length}</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Cuidado</DropdownMenuLabel>
+              <DropdownMenuItem
+                perigo
+                onSelect={() => setApagandoLote(true)}
+                disabled={!visiveis.length}
+              >
+                <Trash2 /> Apagar as peças da tela
+                <span className="etiqueta ml-auto">{visiveis.length}</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={sair}>
+                <LogOut /> Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
@@ -292,31 +332,6 @@ export default function Catalogo() {
                 ? `${visiveis.length} parecidas com "${consulta}"`
                 : `${visiveis.length} de ${pecas.length}`}
           </span>
-
-          {/* Estes dois agem sobre o que a busca e os filtros deixaram na
-              tela — por isso moram aqui, e não junto do "nova peça". */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8"
-            onClick={exportarCsv}
-            disabled={!visiveis.length}
-            title="Baixar em CSV o que está na tela"
-          >
-            <Download />
-            <span className="sr-only">Exportar CSV</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            onClick={() => setApagandoLote(true)}
-            disabled={!visiveis.length}
-            title="Apagar o que está na tela"
-          >
-            <Trash2 />
-            <span className="sr-only">Apagar peças</span>
-          </Button>
         </div>
       </div>
 

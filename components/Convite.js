@@ -55,7 +55,7 @@ export default function Convite({ aberto, aoFechar }) {
   async function compartilhar() {
     try {
       await navigator.share({
-        title: "Catálogo de peças",
+        title: "CHASSI244 — Catálogo de peças",
         text: "Crie seu acesso ao catálogo da oficina:",
         url: link,
       });

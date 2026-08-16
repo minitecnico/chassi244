@@ -1,4 +1,4 @@
-# Catálogo de peças — Reformadora de Chassis
+# CHASSI244 — Catálogo de peças
 
 Portal para achar peça: código, aplicação, marca, fornecedor e preço. O catálogo é alimentado com os arquivos que os fornecedores mandam, do jeito que eles mandam.
 
@@ -21,7 +21,7 @@ A busca perdoa o jeito que cada um digita:
 - **erro de digitação ainda acha** — `amortcedor` acha `amortecedor`, e a tela avisa que o resultado é aproximado, para você saber que aquilo foi um palpite;
 - **a ordem tem critério** — código exato vem antes de palavra inteira, que vem antes de pedaço no meio do texto.
 
-Ao lado da busca ficam três filtros montados a partir do próprio catálogo: fornecedor, marca e categoria. Eles somam com a busca, e o botão de download leva para o Excel exatamente o que está na tela.
+Ao lado da busca ficam três filtros montados a partir do próprio catálogo: fornecedor, marca e categoria. Eles somam com a busca, e o menu `⋮` leva para o Excel exatamente o que está na tela.
 
 ---
 
@@ -73,7 +73,7 @@ Em **Authentication → Providers → Email**, desligue só o **Confirm email** 
 Depois é assim:
 
 1. **Você abre o portal e clica em *Criar meu acesso*.** A primeira conta criada é a dona e entra direto — não há a quem pedir convite ainda.
-2. **Dentro do portal, clique no ícone de convidar**, no topo. Aparece um link. Copie, ou toque em *Compartilhar* e mande direto no grupo do WhatsApp.
+2. **Dentro do portal, abra o menu `⋮` no topo → *Convidar a equipe*.** Aparece um link. Copie, ou toque em *Compartilhar* e mande direto no grupo do WhatsApp.
 3. **Cada pessoa abre o link, preenche nome, e-mail e senha, e já está dentro.** Ninguém digita código, ninguém espera aprovação, você não faz nada.
 
 **Para tirar alguém:** apague a linha dela em **Table Editor → `equipe`** (a conta continua existindo, mas não enxerga mais nada) e clique em *Gerar link novo* no portal — o link antigo morre na hora, e quem já entrou continua dentro.
@@ -137,8 +137,8 @@ A partir daí, cada `git push` publica sozinho. Se quiser um domínio próprio (
 - **Busca que perdoa** — descrita lá em cima. A tecla `/` põe o cursor na busca, `Esc` limpa.
 - **Alimentar o catálogo** — Excel, PDF, Word, CSV ou OpenDocument, sem converter nada antes. Detalhado na seção seguinte.
 - **Filtros do próprio catálogo** — fornecedor, marca e categoria saem do que já está cadastrado, e somam com a busca.
-- **Exportar CSV** — o botão de download baixa exatamente o que está na tela, num arquivo que o Excel em português abre com um duplo clique.
-- **Apagar** — uma peça pela ficha dela, ou em massa pela lixeira ao lado do download. Detalhado abaixo.
+- **Exportar CSV** — no menu `⋮`, *Baixar em CSV* leva exatamente o que está na tela, num arquivo que o Excel em português abre com um duplo clique.
+- **Apagar** — uma peça pela ficha dela; em massa pelo menu `⋮`. Detalhado abaixo.
 - **Sincronia entre os computadores** — peça cadastrada no balcão aparece na tela da oficina sem ninguém recarregar a página.
 - **Fotos** — enviadas do celular direto para o depósito privado do Supabase, com link temporário para exibição. Trocar a foto ou excluir a peça apaga o arquivo antigo, então o depósito não incha com imagens sem dono.
 - **Catálogo grande** — a lista é lida do banco de mil em mil, sem teto, e a tela desenha 60 cartões por vez com um *mostrar mais* no fim. Buscar entre milhares de peças continua instantâneo.
@@ -191,11 +191,11 @@ A gravação é feita pela função `importar_pecas()` no banco, em lotes de 100
 
 **Uma peça:** abra a ficha dela e clique em *Excluir*.
 
-**Um monte de uma vez:** a lixeira fica ao lado do botão de download, na linha dos filtros — e é de propósito que ela esteja ali. Os dois agem sobre a **mesma coisa**: o que a busca e os filtros deixaram na tela. Então o jeito de apagar em massa é *escolher* na tela e clicar na lixeira:
+**Um monte de uma vez:** no menu `⋮` do topo, em *Apagar as peças da tela*. Fica guardado ali, e não solto na barra, porque é o botão que não se aperta sem querer. Ele age sobre o que a busca e os filtros deixaram na tela — o mesmo alvo do *Baixar em CSV*, logo acima dele no menu. Então o jeito de apagar em massa é *escolher* na tela e então abrir o menu:
 
 - importou o catálogo errado? filtre por aquele **fornecedor** e apague;
 - entrou uma linha de lixo repetida? busque por ela e apague;
-- quer começar do zero? limpe a busca e os filtros — a lixeira passa a valer para o catálogo inteiro, e a tela avisa isso com todas as letras.
+- quer começar do zero? limpe a busca e os filtros — a opção passa a valer para o catálogo inteiro, e a janela avisa isso com todas as letras.
 
 Antes de apagar, a janela mostra quantas peças são, uma amostra do que vai embora, e pede que você escreva `APAGAR`. Não tem desfazer: o histórico de entradas e saídas dessas peças vai junto (é `on delete cascade` no banco) e as fotos delas saem do depósito.
 

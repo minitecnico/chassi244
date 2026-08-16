@@ -181,7 +181,7 @@ export default function Acesso() {
 
         <form onSubmit={enviar} className="space-y-5 p-7">
           <div>
-            <p className="etiqueta">Reformadora de chassis</p>
+            <p className="etiqueta">CHASSI244</p>
             <h1 className="mt-1 text-3xl font-extrabold tracking-tight">
               {criando ? "Primeiro acesso" : "Catálogo"}
             </h1>

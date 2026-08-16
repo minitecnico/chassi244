@@ -15,7 +15,7 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata = {
-  title: "Catálogo de peças — Reformadora de Chassis",
+  title: "CHASSI244 — Catálogo de peças",
   description: "Consulta de peças, aplicações e valores da oficina.",
 };
 
