@@ -186,26 +186,124 @@ begin
   return json_build_object('novas', v_novas, 'atualizadas', v_atualizadas);
 end $$;
 
--- 4. PERMISSÕES ----------------------------------------------
+-- 4. QUEM É DA OFICINA ---------------------------------------
+-- Cada um faz o próprio cadastro no portal, sem ninguém criar usuário a
+-- mão. O que separa a equipe do resto do mundo é o CÓDIGO DA OFICINA:
+-- uma frase que só vocês sabem, guardada aqui embaralhada, nunca no
+-- navegador. Quem cria conta sem o código fica com uma conta que não
+-- enxerga absolutamente nada.
+create extension if not exists pgcrypto;
+
+create table if not exists equipe (
+  id        uuid primary key references auth.users(id) on delete cascade,
+  nome      text not null default '',
+  criado_em timestamptz not null default now()
+);
+
+create table if not exists configuracao (
+  id            boolean primary key default true check (id),
+  codigo_hash   text,          -- nulo = ninguém entra até você definir o código
+  atualizado_em timestamptz not null default now()
+);
+insert into configuracao (id) values (true) on conflict (id) do nothing;
+
+-- Quem já tinha conta antes desta atualização continua entrando.
+-- Só roda na primeira vez, quando a equipe ainda está vazia.
+insert into equipe (id, nome)
+select u.id, coalesce(u.raw_user_meta_data->>'nome', '')
+  from auth.users u
+ where not exists (select 1 from equipe)
+on conflict (id) do nothing;
+
+-- >>> DEFINA O CÓDIGO DA OFICINA <<<
+-- Troque a frase abaixo pela sua, tire o comentário e rode. Pode rodar de
+-- novo quando quiser trocar o código; quem já entrou continua dentro.
+--
+--   select definir_codigo_da_oficina('a frase secreta da sua oficina');
+--
+create or replace function definir_codigo_da_oficina(p_codigo text)
+returns void
+language sql
+security definer
+set search_path = public, extensions
+as $$
+  update configuracao
+     set codigo_hash = crypt(p_codigo, gen_salt('bf')), atualizado_em = now()
+   where id;
+$$;
+
+-- Esta é chamada do navegador, no primeiro acesso da pessoa.
+create or replace function entrar_na_equipe(p_codigo text, p_nome text default '')
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  guardado text;
+begin
+  if auth.uid() is null then
+    raise exception 'Entre com seu e-mail e senha antes.';
+  end if;
+
+  select codigo_hash into guardado from configuracao where id;
+
+  if guardado is null then
+    raise exception 'O código da oficina ainda não foi definido no painel do Supabase.';
+  end if;
+
+  if crypt(p_codigo, guardado) <> guardado then
+    raise exception 'Código da oficina não confere.';
+  end if;
+
+  insert into equipe (id, nome) values (auth.uid(), coalesce(trim(p_nome), ''))
+  on conflict (id) do update set nome = excluded.nome where equipe.nome = '';
+end $$;
+
+-- Definir o código é coisa de dono, feita aqui no SQL Editor: o navegador
+-- não pode chamar essa função de jeito nenhum.
+revoke execute on function definir_codigo_da_oficina(text) from public;
+revoke execute on function entrar_na_equipe(text, text) from public;
+grant execute on function entrar_na_equipe(text, text) to authenticated;
+
+-- É esta pergunta que toda permissão abaixo faz: você é da equipe?
+create or replace function na_equipe() returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from equipe where id = auth.uid())
+$$;
+
+-- 5. PERMISSÕES ----------------------------------------------
 -- Sem isto, a chave pública do navegador enxergaria a tabela inteira.
 alter table pecas enable row level security;
 alter table movimentacoes enable row level security;
+alter table equipe enable row level security;
+alter table configuracao enable row level security;
+-- `configuracao` fica sem política nenhuma de propósito: nem logado se lê o
+-- código pelo navegador. Só as funções acima o alcançam.
+
+drop policy if exists "cada um se ve" on equipe;
+create policy "cada um se ve" on equipe
+  for select to authenticated using (id = auth.uid());
 
 drop policy if exists "equipe le pecas" on pecas;
 drop policy if exists "equipe escreve pecas" on pecas;
 create policy "equipe le pecas" on pecas
-  for select to authenticated using (true);
+  for select to authenticated using (na_equipe());
 create policy "equipe escreve pecas" on pecas
-  for all to authenticated using (true) with check (true);
+  for all to authenticated using (na_equipe()) with check (na_equipe());
 
 drop policy if exists "equipe le movimentacoes" on movimentacoes;
 drop policy if exists "equipe escreve movimentacoes" on movimentacoes;
 create policy "equipe le movimentacoes" on movimentacoes
-  for select to authenticated using (true);
+  for select to authenticated using (na_equipe());
 create policy "equipe escreve movimentacoes" on movimentacoes
-  for insert to authenticated with check (true);
+  for insert to authenticated with check (na_equipe());
 
--- 5. FOTOS ---------------------------------------------------
+-- 6. FOTOS ---------------------------------------------------
 insert into storage.buckets (id, name, public)
 values ('fotos', 'fotos', false)
 on conflict (id) do nothing;
@@ -214,15 +312,15 @@ drop policy if exists "equipe ve fotos" on storage.objects;
 drop policy if exists "equipe envia fotos" on storage.objects;
 drop policy if exists "equipe apaga fotos" on storage.objects;
 create policy "equipe ve fotos" on storage.objects
-  for select to authenticated using (bucket_id = 'fotos');
+  for select to authenticated using (bucket_id = 'fotos' and na_equipe());
 create policy "equipe envia fotos" on storage.objects
-  for insert to authenticated with check (bucket_id = 'fotos');
+  for insert to authenticated with check (bucket_id = 'fotos' and na_equipe());
 -- sem isto, trocar a foto de uma peça deixa o arquivo antigo ocupando
 -- espaço para sempre — e o plano gratuito tem 1 GB de depósito.
 create policy "equipe apaga fotos" on storage.objects
-  for delete to authenticated using (bucket_id = 'fotos');
+  for delete to authenticated using (bucket_id = 'fotos' and na_equipe());
 
--- 6. SINCRONIA ENTRE OS COMPUTADORES DA OFICINA --------------
+-- 7. SINCRONIA ENTRE OS COMPUTADORES DA OFICINA --------------
 -- Baixa feita no balcão aparece na tela da oficina sem recarregar.
 do $$
 begin

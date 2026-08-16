@@ -25,6 +25,18 @@ Ao lado da busca ficam três filtros montados a partir do próprio catálogo: fo
 
 ---
 
+## Quem entra no portal
+
+Cada pessoa cria o próprio acesso, com uma frase que a oficina combina: o **código da oficina**.
+
+O código não fica no site. Ele mora no banco, embaralhado (`bcrypt`), e nem quem está logado consegue lê-lo — a tabela `configuracao` não tem permissão de leitura nenhuma. Quem confere é uma função do banco, que devolve só "confere" ou "não confere".
+
+Por que não deixar o cadastro simplesmente aberto: a chave que o navegador usa é **pública por natureza** — está no código da página, e qualquer um consegue vê-la. Sem o código da oficina, quem achasse o endereço criaria uma conta e leria seu catálogo inteiro, com custo e margem. Com ele, criar conta sem a frase produz uma conta que não enxerga **nada**: as permissões do banco não perguntam "você está logado?", perguntam "você é da equipe?".
+
+E é a resposta a essa pergunta que libera peça, movimentação e foto — não uma verificação na tela, que qualquer pessoa contornaria falando direto com o banco.
+
+---
+
 ## Como as peças ficam organizadas
 
 Duas tabelas, e uma regra no meio delas:
@@ -46,17 +58,29 @@ Por isso o campo de quantidade só é editável no **cadastro** da peça — e o
 3. Espere ~2 minutos enquanto o banco sobe.
 4. No menu lateral, abra o **SQL Editor** → **New query** → abra o arquivo `supabase/schema.sql` deste projeto, cole o conteúdo inteiro e clique em **Run**.
 
-Isso cria as tabelas, as funções `movimentar()`, `importar_pecas()` e `chave_peca()`, os índices de busca, as permissões e o depósito de fotos, de uma vez.
+Isso cria as tabelas, as funções, os índices de busca, as permissões e o depósito de fotos, de uma vez.
 
 O arquivo pode ser colado de novo sempre que mudar: nada é apagado e nenhum dado se perde. **Se o portal já está no ar, rode de novo agora** — a importação de catálogo depende da versão atual deste arquivo.
 
-## Passo 2 — Contas da equipe
+## Passo 2 — O código da oficina
 
-Não existe cadastro aberto: você cria quem entra.
+Cada um faz o próprio cadastro no portal. Você não cria usuário para ninguém — define **uma vez** a frase que libera o acesso, e passa essa frase para a equipe.
 
-**Authentication → Users → Add user → Create new user.** Preencha e-mail e senha e marque *Auto Confirm User* (dispensa e-mail de confirmação). Repita para cada pessoa da oficina.
+No **SQL Editor**, rode com a sua frase no lugar da de exemplo:
 
-Para remover alguém depois, é só apagar o usuário nessa mesma tela.
+```sql
+select definir_codigo_da_oficina('feixe de mola 2026');
+```
+
+Pode ser qualquer coisa que a equipe consiga escrever e um estranho não adivinhe. Para trocar depois, rode de novo com a frase nova — quem já entrou continua dentro; só os próximos precisarão da frase nova.
+
+**Enquanto você não rodar essa linha, ninguém entra.** É de propósito: o portal nasce fechado.
+
+Ainda em **Authentication → Providers → Email**, desligue **Confirm email**. Sem isso, cada pessoa que se cadastrar precisa achar um e-mail de confirmação antes de usar o portal — e quem protege o catálogo aqui é o código da oficina, não o e-mail.
+
+**Como é para a pessoa:** ela abre o portal, clica em *Criar meu acesso*, preenche nome, e-mail, senha e o código da oficina. Pronto, está dentro. Nada de você no meio.
+
+**Para tirar alguém:** apague a linha dela em **Table Editor → `equipe`**. A conta continua existindo, mas não enxerga mais nada. Se quiser apagar a conta também, **Authentication → Users**. Quando alguém sai da oficina, troque o código.
 
 ## Passo 3 — Chaves
 

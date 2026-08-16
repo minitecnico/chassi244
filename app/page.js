@@ -81,6 +81,16 @@ export default function Catalogo() {
 
   async function carregar() {
     setCarregando(true);
+
+    // Conta criada mas sem o código da oficina não enxerga peça nenhuma —
+    // sem esta conferência, o portal mostraria um catálogo vazio como se
+    // não houvesse nada cadastrado.
+    const { data: membro } = await supabase.from("equipe").select("id").maybeSingle();
+    if (!membro) {
+      router.replace("/login");
+      return;
+    }
+
     const todas = [];
 
     for (let inicio = 0; ; ) {
