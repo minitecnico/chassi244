@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { KeyRound, Loader2, LogIn, UserPlus } from "lucide-react";
+import { Loader2, LogIn, UserPlus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,32 +40,51 @@ function explicar(erro) {
   return mensagem;
 }
 
+/** O convite chega pela barra de endereço, no link que a oficina mandou.
+ *  Se a pessoa colar o link inteiro num campo, também vale. */
+function acharConvite(texto) {
+  const bruto = String(texto || "").trim();
+  const naUrl = bruto.match(/[?&]convite=([^&\s]+)/);
+  return (naUrl ? naUrl[1] : bruto).trim();
+}
+
 export default function Acesso() {
-  // "entrar" | "primeiro" | "codigo" — o último aparece para quem já tem
-  // conta mas ainda não provou que é da oficina
+  // "entrar" | "primeiro" — o segundo também atende quem já criou a conta
+  // e precisa só terminar de entrar na equipe
   const [modo, setModo] = useState("entrar");
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [codigo, setCodigo] = useState("");
+  const [convite, setConvite] = useState("");
+  const [pedirConvite, setPedirConvite] = useState(false);
+  const [logado, setLogado] = useState(false);
   const [erro, setErro] = useState("");
   const [aviso, setAviso] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const router = useRouter();
 
-  // Quem chega aqui já logado é quem criou a conta e ainda não deu o código:
-  // vai direto para o campo do código, sem pedir a senha de novo.
   useEffect(() => {
+    // ?convite=... é lido aqui, e não pela barra de endereço do Next, para
+    // a página continuar sendo estática e abrir instantânea no celular
+    const daUrl = acharConvite(window.location.search);
+    if (daUrl) {
+      setConvite(daUrl);
+      setModo("primeiro");
+    }
+
+    // Quem chega já logado é quem criou a conta e não terminou de entrar
     supabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) return;
       const { data: membro } = await supabase.from("equipe").select("id").maybeSingle();
-      if (membro) {
-        router.replace("/");
-        return;
-      }
+      if (membro) return router.replace("/");
+
+      setLogado(true);
       setNome(data.session.user.user_metadata?.nome || "");
-      setModo("codigo");
-      setAviso("Falta o código da oficina para liberar seu acesso.");
+      setModo("primeiro");
+      if (!daUrl) {
+        setPedirConvite(true);
+        setAviso("Sua conta está criada. Falta o link de convite da oficina para liberar o acesso.");
+      }
     });
   }, [router]);
 
@@ -75,17 +94,22 @@ export default function Acesso() {
     setAviso("");
   }
 
-  const entrarNoPortal = () => {
+  /** Troca o convite pelo acesso de verdade. */
+  async function liberar() {
+    const { error } = await supabase.rpc("entrar_na_equipe", {
+      p_convite: acharConvite(convite),
+      p_nome: nome.trim(),
+    });
+
+    if (error) {
+      setErro(error.message);
+      setPedirConvite(true);
+      setLogado(true);
+      return;
+    }
+
     router.replace("/");
     router.refresh();
-  };
-
-  /** Já autenticado: falta saber se essa conta é da equipe. */
-  async function conferirEquipe() {
-    const { data } = await supabase.from("equipe").select("id").maybeSingle();
-    if (data) return entrarNoPortal();
-    trocarModo("codigo");
-    setAviso("Falta o código da oficina para liberar seu acesso.");
   }
 
   async function enviar(e) {
@@ -99,36 +123,47 @@ export default function Acesso() {
         email: email.trim(),
         password: senha,
       });
-      if (error) {
-        setErro(explicar(error));
-        setOcupado(false);
-        return;
+      if (error) setErro(explicar(error));
+      else {
+        const { data: membro } = await supabase.from("equipe").select("id").maybeSingle();
+        if (membro) {
+          router.replace("/");
+          router.refresh();
+        } else {
+          setLogado(true);
+          setPedirConvite(true);
+          trocarModo("primeiro");
+          setAviso("Sua conta existe, mas falta o link de convite da oficina.");
+        }
       }
-      await conferirEquipe();
       setOcupado(false);
       return;
     }
 
-    if (modo === "primeiro") {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password: senha,
-        options: { data: { nome: nome.trim() } },
-      });
-      if (error) {
-        setErro(explicar(error));
-        setOcupado(false);
-        return;
-      }
-      // Com a confirmação por e-mail ligada no Supabase, a conta nasce sem
-      // sessão: não dá para liberar o acesso agora.
-      if (!data.session) {
-        trocarModo("entrar");
-        setAviso("Conta criada. Confirme o e-mail que o Supabase enviou e entre aqui.");
-        setOcupado(false);
-        return;
-      }
+    // Já tem conta e só falta o convite: não recria nada.
+    if (logado) {
       await liberar();
+      setOcupado(false);
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password: senha,
+      options: { data: { nome: nome.trim() } },
+    });
+
+    if (error) {
+      setErro(explicar(error));
+      setOcupado(false);
+      return;
+    }
+
+    // Com a confirmação por e-mail ligada no Supabase, a conta nasce sem
+    // sessão: não dá para liberar o acesso agora.
+    if (!data.session) {
+      trocarModo("entrar");
+      setAviso("Conta criada. Confirme o e-mail que o Supabase enviou e entre aqui.");
       setOcupado(false);
       return;
     }
@@ -137,25 +172,7 @@ export default function Acesso() {
     setOcupado(false);
   }
 
-  /** Troca o código da oficina pelo acesso de verdade. */
-  async function liberar() {
-    const { error } = await supabase.rpc("entrar_na_equipe", {
-      p_codigo: codigo.trim(),
-      p_nome: nome.trim(),
-    });
-    if (error) {
-      setErro(error.message);
-      setModo("codigo");
-      return;
-    }
-    entrarNoPortal();
-  }
-
-  const titulos = {
-    entrar: { titulo: "Catálogo", texto: "Entre com seu e-mail da oficina." },
-    primeiro: { titulo: "Primeiro acesso", texto: "Crie seu acesso ao catálogo." },
-    codigo: { titulo: "Código da oficina", texto: "Peça o código a quem cuida do portal." },
-  };
+  const criando = modo === "primeiro";
 
   return (
     <main className="grid min-h-dvh place-items-center px-6 py-10">
@@ -166,12 +183,14 @@ export default function Acesso() {
           <div>
             <p className="etiqueta">Reformadora de chassis</p>
             <h1 className="mt-1 text-3xl font-extrabold tracking-tight">
-              {titulos[modo].titulo}
+              {criando ? "Primeiro acesso" : "Catálogo"}
             </h1>
-            <p className="mt-2 text-sm text-muted-foreground">{titulos[modo].texto}</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {criando ? "Crie seu acesso ao catálogo." : "Entre com seu e-mail da oficina."}
+            </p>
           </div>
 
-          {modo === "primeiro" && (
+          {criando && (
             <Campo
               id="nome"
               rotulo="Seu nome"
@@ -182,7 +201,7 @@ export default function Acesso() {
             />
           )}
 
-          {modo !== "codigo" && (
+          {!logado && (
             <>
               <Campo
                 id="email"
@@ -191,7 +210,7 @@ export default function Acesso() {
                 valor={email}
                 aoMudar={setEmail}
                 autoComplete="username"
-                autoFocus={modo === "entrar"}
+                autoFocus={!criando}
               />
               <Campo
                 id="senha"
@@ -199,25 +218,25 @@ export default function Acesso() {
                 tipo="password"
                 valor={senha}
                 aoMudar={setSenha}
-                autoComplete={modo === "primeiro" ? "new-password" : "current-password"}
-                ajuda={modo === "primeiro" ? "Pelo menos 6 caracteres." : ""}
-                minimo={modo === "primeiro" ? 6 : undefined}
+                autoComplete={criando ? "new-password" : "current-password"}
+                ajuda={criando ? "Pelo menos 6 caracteres." : ""}
+                minimo={criando ? 6 : undefined}
               />
             </>
           )}
 
-          {modo !== "entrar" && (
+          {criando && pedirConvite && (
             <Campo
-              id="codigo"
-              rotulo="Código da oficina"
-              valor={codigo}
-              aoMudar={setCodigo}
+              id="convite"
+              rotulo="Link de convite"
+              valor={convite}
+              aoMudar={setConvite}
               autoComplete="off"
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              autoFocus={modo === "codigo"}
-              ajuda="É a frase combinada da oficina — não é a sua senha. Maiúscula não importa."
+              autoFocus={logado}
+              ajuda="Cole aqui o link que a oficina te mandou."
             />
           )}
 
@@ -225,33 +244,19 @@ export default function Acesso() {
           {aviso && !erro && <p className="rounded-md bg-accent p-3 text-sm font-medium">{aviso}</p>}
 
           <Button type="submit" size="lg" className="w-full" disabled={ocupado}>
-            {ocupado ? (
-              <Loader2 className="animate-spin" />
-            ) : modo === "entrar" ? (
-              <LogIn />
-            ) : modo === "primeiro" ? (
-              <UserPlus />
-            ) : (
-              <KeyRound />
-            )}
-            {ocupado
-              ? "Um instante..."
-              : modo === "entrar"
-                ? "Entrar"
-                : modo === "primeiro"
-                  ? "Criar meu acesso"
-                  : "Liberar acesso"}
+            {ocupado ? <Loader2 className="animate-spin" /> : criando ? <UserPlus /> : <LogIn />}
+            {ocupado ? "Um instante..." : criando ? "Criar meu acesso" : "Entrar"}
           </Button>
 
-          {modo !== "codigo" && (
+          {!logado && (
             <p className="text-center text-sm">
-              {modo === "entrar" ? "Primeira vez aqui? " : "Já tem acesso? "}
+              {criando ? "Já tem acesso? " : "Primeira vez aqui? "}
               <button
                 type="button"
-                onClick={() => trocarModo(modo === "entrar" ? "primeiro" : "entrar")}
+                onClick={() => trocarModo(criando ? "entrar" : "primeiro")}
                 className="font-medium underline underline-offset-4"
               >
-                {modo === "entrar" ? "Criar meu acesso" : "Entrar"}
+                {criando ? "Entrar" : "Criar meu acesso"}
               </button>
             </p>
           )}

@@ -27,11 +27,13 @@ Ao lado da busca ficam três filtros montados a partir do próprio catálogo: fo
 
 ## Quem entra no portal
 
-Cada pessoa cria o próprio acesso, com uma frase que a oficina combina: o **código da oficina**.
+Um link, mandado no grupo da oficina. É só isso.
 
-O código não fica no site. Ele mora no banco, embaralhado (`bcrypt`), e nem quem está logado consegue lê-lo — a tabela `configuracao` não tem permissão de leitura nenhuma. Quem confere é uma função do banco, que devolve só "confere" ou "não confere".
+A primeira conta criada é a dona do portal e entra direto. De dentro, ela copia o **link de convite** e manda para a equipe; quem abre o link se cadastra sozinho e já está dentro. Ninguém decora código, ninguém aprova ninguém, e não existe passo no painel do Supabase.
 
-Por que não deixar o cadastro simplesmente aberto: a chave que o navegador usa é **pública por natureza** — está no código da página, e qualquer um consegue vê-la. Sem o código da oficina, quem achasse o endereço criaria uma conta e leria seu catálogo inteiro, com custo e margem. Com ele, criar conta sem a frase produz uma conta que não enxerga **nada**: as permissões do banco não perguntam "você está logado?", perguntam "você é da equipe?".
+O link é o que separa a equipe do resto da internet, e por isso ele é sorteado pelo banco — 24 caracteres aleatórios que ninguém adivinha — e só aparece para quem já é da equipe. Se alguém sai da oficina, um clique em *Gerar link novo* mata o antigo na hora.
+
+Por que existe alguma barreira, já que você queria simples: a chave que o navegador usa é **pública por natureza** — está no código da página, qualquer um lê. Com o cadastro totalmente aberto, quem achasse o endereço criaria uma conta e leria seu catálogo inteiro, com custo e margem. Com o convite, criar conta sem ele produz uma conta que não enxerga **nada** — porque as permissões do banco não perguntam "você está logado?", perguntam **"você é da equipe?"**.
 
 E é a resposta a essa pergunta que libera peça, movimentação e foto — não uma verificação na tela, que qualquer pessoa contornaria falando direto com o banco.
 
@@ -62,27 +64,19 @@ Isso cria as tabelas, as funções, os índices de busca, as permissões e o dep
 
 O arquivo pode ser colado de novo sempre que mudar: nada é apagado e nenhum dado se perde. **Se o portal já está no ar, rode de novo agora** — a importação de catálogo depende da versão atual deste arquivo.
 
-## Passo 2 — O código da oficina
+## Passo 2 — A equipe
 
-Cada um faz o próprio cadastro no portal. Você não cria usuário para ninguém — define **uma vez** a frase que libera o acesso, e passa essa frase para a equipe.
+Não tem passo. Sério: você não cria usuário para ninguém e não define senha de oficina nenhuma.
 
-No **SQL Editor**, rode com a sua frase no lugar da de exemplo:
+Em **Authentication → Providers → Email**, desligue só o **Confirm email** — sem isso, cada pessoa que se cadastrar precisaria caçar um e-mail de confirmação antes de usar o portal.
 
-```sql
-select definir_codigo_da_oficina('feixe de mola 2026');
-```
+Depois é assim:
 
-Pode ser qualquer coisa que a equipe consiga escrever e um estranho não adivinhe. Maiúscula e espaço nas pontas não contam — o teclado do celular põe maiúscula sozinho, e ninguém merece brigar com isso na porta de entrada.
+1. **Você abre o portal e clica em *Criar meu acesso*.** A primeira conta criada é a dona e entra direto — não há a quem pedir convite ainda.
+2. **Dentro do portal, clique no ícone de convidar**, no topo. Aparece um link. Copie, ou toque em *Compartilhar* e mande direto no grupo do WhatsApp.
+3. **Cada pessoa abre o link, preenche nome, e-mail e senha, e já está dentro.** Ninguém digita código, ninguém espera aprovação, você não faz nada.
 
-Para conferir se gravou: `select codigo_hash is not null as codigo_definido from configuracao;` deve voltar `true`. Ele fica embaralhado e não dá para ler de volta, nem você; se esquecer a frase, rode o `definir_codigo_da_oficina` de novo com outra. Quem já entrou continua dentro — só os próximos precisarão da frase nova.
-
-**Enquanto você não rodar essa linha, ninguém entra.** É de propósito: o portal nasce fechado.
-
-Ainda em **Authentication → Providers → Email**, desligue **Confirm email**. Sem isso, cada pessoa que se cadastrar precisa achar um e-mail de confirmação antes de usar o portal — e quem protege o catálogo aqui é o código da oficina, não o e-mail.
-
-**Como é para a pessoa:** ela abre o portal, clica em *Criar meu acesso*, preenche nome, e-mail, senha e o código da oficina. Pronto, está dentro. Nada de você no meio.
-
-**Para tirar alguém:** apague a linha dela em **Table Editor → `equipe`**. A conta continua existindo, mas não enxerga mais nada. Se quiser apagar a conta também, **Authentication → Users**. Quando alguém sai da oficina, troque o código.
+**Para tirar alguém:** apague a linha dela em **Table Editor → `equipe`** (a conta continua existindo, mas não enxerga mais nada) e clique em *Gerar link novo* no portal — o link antigo morre na hora, e quem já entrou continua dentro.
 
 ## Passo 3 — Chaves
 

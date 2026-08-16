@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, FileUp, LogOut, Package, Plus, Search, X } from "lucide-react";
+import { Download, FileUp, LogOut, Package, Plus, Search, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import PecaForm from "@/components/PecaForm";
 import Detalhe from "@/components/Detalhe";
 import ImportarCatalogo from "@/components/ImportarCatalogo";
+import Convite from "@/components/Convite";
 import { moeda, ordenar, paraCsv } from "@/lib/formato";
 import { indexar, buscar, realcar } from "@/lib/busca";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ export default function Catalogo() {
   const [selecionada, setSelecionada] = useState(null);
   const [editando, setEditando] = useState(null); // peça existente, ou {} para nova
   const [importando, setImportando] = useState(false);
+  const [convidando, setConvidando] = useState(false);
   const [limite, setLimite] = useState(LOTE_VISIVEL);
   const campoBusca = useRef(null);
   const router = useRouter();
@@ -196,6 +198,15 @@ export default function Catalogo() {
           <Indicador rotulo="Peças" valor={pecas.length} />
           <Indicador rotulo="Fornecedores" valor={opcoes.fornecedor.length} />
           <Indicador rotulo="Marcas" valor={opcoes.marca.length} />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setConvidando(true)}
+            title="Convidar a equipe"
+          >
+            <UserPlus />
+            <span className="sr-only">Convidar a equipe</span>
+          </Button>
           <Button variant="ghost" size="icon" onClick={sair} title="Sair">
             <LogOut />
             <span className="sr-only">Sair</span>
@@ -423,6 +434,8 @@ export default function Catalogo() {
         aoFechar={() => setEditando(null)}
         aoSalvar={aplicar}
       />
+
+      <Convite aberto={convidando} aoFechar={() => setConvidando(false)} />
     </main>
   );
 }
