@@ -72,7 +72,9 @@ No **SQL Editor**, rode com a sua frase no lugar da de exemplo:
 select definir_codigo_da_oficina('feixe de mola 2026');
 ```
 
-Pode ser qualquer coisa que a equipe consiga escrever e um estranho não adivinhe. Para trocar depois, rode de novo com a frase nova — quem já entrou continua dentro; só os próximos precisarão da frase nova.
+Pode ser qualquer coisa que a equipe consiga escrever e um estranho não adivinhe. Maiúscula e espaço nas pontas não contam — o teclado do celular põe maiúscula sozinho, e ninguém merece brigar com isso na porta de entrada.
+
+Para conferir se gravou: `select codigo_hash is not null as codigo_definido from configuracao;` deve voltar `true`. Ele fica embaralhado e não dá para ler de volta, nem você; se esquecer a frase, rode o `definir_codigo_da_oficina` de novo com outra. Quem já entrou continua dentro — só os próximos precisarão da frase nova.
 
 **Enquanto você não rodar essa linha, ninguém entra.** É de propósito: o portal nasce fechado.
 

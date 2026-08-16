@@ -213,8 +213,11 @@ export default function Acesso() {
               valor={codigo}
               aoMudar={setCodigo}
               autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               autoFocus={modo === "codigo"}
-              ajuda="É a frase combinada da oficina — não é a sua senha."
+              ajuda="É a frase combinada da oficina — não é a sua senha. Maiúscula não importa."
             />
           )}
 

@@ -221,6 +221,9 @@ on conflict (id) do nothing;
 --
 --   select definir_codigo_da_oficina('a frase secreta da sua oficina');
 --
+-- O código é guardado em minúsculas e sem espaço nas pontas: o teclado do
+-- celular põe maiúscula na primeira letra sozinho, e ninguém merece ficar
+-- brigando com isso na porta de entrada.
 create or replace function definir_codigo_da_oficina(p_codigo text)
 returns void
 language sql
@@ -228,7 +231,7 @@ security definer
 set search_path = public, extensions
 as $$
   update configuracao
-     set codigo_hash = crypt(p_codigo, gen_salt('bf')), atualizado_em = now()
+     set codigo_hash = crypt(lower(trim(p_codigo)), gen_salt('bf')), atualizado_em = now()
    where id;
 $$;
 
@@ -252,7 +255,7 @@ begin
     raise exception 'O código da oficina ainda não foi definido no painel do Supabase.';
   end if;
 
-  if crypt(p_codigo, guardado) <> guardado then
+  if crypt(lower(trim(p_codigo)), guardado) <> guardado then
     raise exception 'Código da oficina não confere.';
   end if;
 
