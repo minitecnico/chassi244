@@ -9,6 +9,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 
+/** O Supabase responde a mesma coisa para senha errada e para conta que não
+ *  existe — de propósito, para ninguém descobrir quais e-mails estão
+ *  cadastrados. Como aqui as contas são criadas à mão no painel, "não existe"
+ *  é o motivo mais comum, e a mensagem precisa dizer isso. */
+function explicar(erro) {
+  const mensagem = erro.message || "";
+
+  if (mensagem === "Invalid login credentials") {
+    return "E-mail ou senha não conferem — ou a conta ainda não foi criada no painel do Supabase.";
+  }
+  if (/email not confirmed/i.test(mensagem)) {
+    return "A conta existe mas não foi confirmada. No painel do Supabase, apague e crie de novo marcando Auto Confirm User.";
+  }
+  if (/logins are disabled|signups not allowed|provider is disabled/i.test(mensagem)) {
+    return "O login por e-mail está desligado no painel do Supabase, em Authentication → Providers.";
+  }
+  if (/failed to fetch|network|load failed/i.test(mensagem)) {
+    return "Não consegui falar com o Supabase. Confira a conexão e o endereço do projeto nas variáveis do site.";
+  }
+  return mensagem;
+}
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -21,14 +43,14 @@ export default function Login() {
     setEntrando(true);
     setErro("");
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+    // espaço colado junto do e-mail ao copiar não pode derrubar o login
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password: senha,
+    });
 
     if (error) {
-      setErro(
-        error.message === "Invalid login credentials"
-          ? "E-mail ou senha não conferem."
-          : error.message
-      );
+      setErro(explicar(error));
       setEntrando(false);
       return;
     }
