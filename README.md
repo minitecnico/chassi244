@@ -138,6 +138,7 @@ A partir daí, cada `git push` publica sozinho. Se quiser um domínio próprio (
 - **Alimentar o catálogo** — Excel, PDF, Word, CSV ou OpenDocument, sem converter nada antes. Detalhado na seção seguinte.
 - **Filtros do próprio catálogo** — fornecedor, marca e categoria saem do que já está cadastrado, e somam com a busca.
 - **Exportar CSV** — o botão de download baixa exatamente o que está na tela, num arquivo que o Excel em português abre com um duplo clique.
+- **Apagar** — uma peça pela ficha dela, ou em massa pela lixeira ao lado do download. Detalhado abaixo.
 - **Sincronia entre os computadores** — peça cadastrada no balcão aparece na tela da oficina sem ninguém recarregar a página.
 - **Fotos** — enviadas do celular direto para o depósito privado do Supabase, com link temporário para exibição. Trocar a foto ou excluir a peça apaga o arquivo antigo, então o depósito não incha com imagens sem dono.
 - **Catálogo grande** — a lista é lida do banco de mil em mil, sem teto, e a tela desenha 60 cartões por vez com um *mostrar mais* no fim. Buscar entre milhares de peças continua instantâneo.
@@ -185,6 +186,27 @@ Quando o arquivo **não tem cabeçalho nenhum**, ele deduz pelo conteúdo: a col
 A gravação é feita pela função `importar_pecas()` no banco, em lotes de 100 peças. Cada lote é uma transação: ou as 100 entram, ou nenhuma.
 
 **Como uma peça é reconhecida entre uma importação e outra:** por **fornecedor + código**. Quando o catálogo não tem código, o **nome da peça** faz esse papel — senão o catálogo inteiro de um fornecedor viraria uma linha só. Essa regra está escrita duas vezes, em `lib/catalogo.js` e na função `chave_peca()` do banco, e as duas precisam continuar iguais: é ela que faz o número prometido na prévia ser o número gravado.
+
+## Apagando peça
+
+**Uma peça:** abra a ficha dela e clique em *Excluir*.
+
+**Um monte de uma vez:** a lixeira fica ao lado do botão de download, na linha dos filtros — e é de propósito que ela esteja ali. Os dois agem sobre a **mesma coisa**: o que a busca e os filtros deixaram na tela. Então o jeito de apagar em massa é *escolher* na tela e clicar na lixeira:
+
+- importou o catálogo errado? filtre por aquele **fornecedor** e apague;
+- entrou uma linha de lixo repetida? busque por ela e apague;
+- quer começar do zero? limpe a busca e os filtros — a lixeira passa a valer para o catálogo inteiro, e a tela avisa isso com todas as letras.
+
+Antes de apagar, a janela mostra quantas peças são, uma amostra do que vai embora, e pede que você escreva `APAGAR`. Não tem desfazer: o histórico de entradas e saídas dessas peças vai junto (é `on delete cascade` no banco) e as fotos delas saem do depósito.
+
+**Direto no banco**, se preferir: em **Table Editor → `pecas`** dá para selecionar linhas e apagar. Ou no **SQL Editor**:
+
+```sql
+delete from pecas where fornecedor = 'Randon';   -- só de um fornecedor
+delete from pecas;                               -- o catálogo inteiro
+```
+
+Isso apaga o cadastro e o histórico, mas **não** apaga as fotos do depósito — pelo portal elas saem junto. Se for limpar tudo pelo SQL, passe depois em **Storage → fotos** e apague a pasta `pecas`.
 
 ## Onde mora cada coisa
 

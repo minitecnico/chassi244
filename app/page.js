@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, FileUp, LogOut, Package, Plus, Search, UserPlus, X } from "lucide-react";
+import { Download, FileUp, LogOut, Package, Plus, Search, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import PecaForm from "@/components/PecaForm";
 import Detalhe from "@/components/Detalhe";
 import ImportarCatalogo from "@/components/ImportarCatalogo";
 import Convite from "@/components/Convite";
+import ApagarPecas from "@/components/ApagarPecas";
 import { moeda, ordenar, paraCsv } from "@/lib/formato";
 import { indexar, buscar, realcar } from "@/lib/busca";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ export default function Catalogo() {
   const [editando, setEditando] = useState(null); // peça existente, ou {} para nova
   const [importando, setImportando] = useState(false);
   const [convidando, setConvidando] = useState(false);
+  const [apagandoLote, setApagandoLote] = useState(false);
   const [limite, setLimite] = useState(LOTE_VISIVEL);
   const campoBusca = useRef(null);
   const router = useRouter();
@@ -255,17 +257,6 @@ export default function Catalogo() {
             <Plus />
             <span className="sr-only">Nova peça</span>
           </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="h-11"
-            onClick={exportarCsv}
-            disabled={!visiveis.length}
-            title="Baixar em CSV"
-          >
-            <Download />
-            <span className="sr-only">Exportar CSV</span>
-          </Button>
         </div>
 
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -301,6 +292,31 @@ export default function Catalogo() {
                 ? `${visiveis.length} parecidas com "${consulta}"`
                 : `${visiveis.length} de ${pecas.length}`}
           </span>
+
+          {/* Estes dois agem sobre o que a busca e os filtros deixaram na
+              tela — por isso moram aqui, e não junto do "nova peça". */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={exportarCsv}
+            disabled={!visiveis.length}
+            title="Baixar em CSV o que está na tela"
+          >
+            <Download />
+            <span className="sr-only">Exportar CSV</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => setApagandoLote(true)}
+            disabled={!visiveis.length}
+            title="Apagar o que está na tela"
+          >
+            <Trash2 />
+            <span className="sr-only">Apagar peças</span>
+          </Button>
         </div>
       </div>
 
@@ -436,6 +452,20 @@ export default function Catalogo() {
       />
 
       <Convite aberto={convidando} aoFechar={() => setConvidando(false)} />
+
+      <ApagarPecas
+        aberto={apagandoLote}
+        pecas={visiveis}
+        filtrando={filtrando || !!consulta}
+        aoFechar={() => setApagandoLote(false)}
+        aoApagar={(ids) => {
+          const apagados = new Set(ids);
+          setPecas((lista) => lista.filter((p) => !apagados.has(p.id)));
+          setSelecionada(null);
+          setApagandoLote(false);
+          toast.success(`${ids.length} ${ids.length === 1 ? "peça apagada" : "peças apagadas"}.`);
+        }}
+      />
     </main>
   );
 }
