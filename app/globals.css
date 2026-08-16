@@ -1,0 +1,116 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* ------------------------------------------------------------------
+   Branco, preto e amarelo. O amarelo é sinal, não enfeite: marca o que
+   está selecionado, o que a busca achou e o que precisa de atenção.
+   Se aparecer em tudo, para de querer dizer alguma coisa.
+------------------------------------------------------------------ */
+:root {
+  --radius: 0.5rem;
+
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+
+  --primary: #0a0a0a;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f5f5f5;
+  --secondary-foreground: #0a0a0a;
+
+  --muted: #f7f7f7;
+  --muted-foreground: #6e6e6e;
+
+  --accent: #ffd400;
+  --accent-foreground: #0a0a0a;
+
+  --destructive: #b3261e;
+  --destructive-foreground: #ffffff;
+
+  --border: #e6e6e6;
+  --input: #d6d6d6;
+  --ring: #0a0a0a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: var(--fonte-display), system-ui, sans-serif;
+  --font-mono: var(--fonte-mono), ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    -webkit-text-size-adjust: 100%;
+  }
+  /* Número embaixo de número: a coluna de preço para de dançar. */
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Rótulo pequeno, de etiqueta de almoxarifado. */
+@utility etiqueta {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* O que a busca achou, grifado a marca-texto. */
+@utility grifo {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+  border-radius: 2px;
+}
+
+/* Faixa de risco: só onde falta peça. */
+@utility faixa-risco {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--accent) 0 6px,
+    var(--foreground) 6px 12px
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
