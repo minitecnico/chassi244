@@ -226,6 +226,10 @@ select u.id, coalesce(u.raw_user_meta_data->>'nome', '')
 on conflict (id) do nothing;
 
 -- Chamada pelo portal no primeiro acesso da pessoa.
+-- O `drop` antes é obrigatório: quem rodou a versão do código da oficina
+-- tem esta função com outro nome de parâmetro, e o Postgres não deixa
+-- renomear parâmetro num "create or replace".
+drop function if exists entrar_na_equipe(text, text);
 create or replace function entrar_na_equipe(p_convite text default '', p_nome text default '')
 returns void
 language plpgsql
